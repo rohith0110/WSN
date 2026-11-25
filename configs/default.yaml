@@ -1,0 +1,111 @@
+# Default scenario. Values are simulation assumptions for a reproducible student project,
+# not universal constants and not an IEEE 802.15.4 PHY/MAC model.
+scenario:
+  node_count: 50
+  area_width_m: 100.0
+  area_height_m: 100.0
+  sink_x_m: 50.0
+  sink_y_m: 50.0
+  communication_range_m: 30.0
+  initial_energy_j: 0.2
+  packet_bytes: 512            # energy uses bits = bytes * 8
+  max_rounds: 2000
+  max_hops_multiplier: 2       # max hops per packet = 2 * node_count
+  topology_require_connected: true
+  topology_max_tries: 100
+  seed: 2000
+
+radio:
+  e_elec_j_per_bit: 5.0e-8
+  epsilon_fs_j_per_bit_m2: 1.0e-11
+  epsilon_mp_j_per_bit_m4: 1.3e-15
+  base_link_quality_intercept: 0.98
+  base_link_quality_distance_coefficient: 0.20
+  base_link_quality_min: 0.60
+  base_link_quality_max: 0.99
+  link_offset_amplitude: 0.08     # fixed per-link offset in [-a, +a]
+  link_temporal_amplitude: 0.05   # offset redrawn every link_refresh_rounds
+  link_refresh_rounds: 25
+  min_success_probability: 0.50
+  max_success_probability: 0.99
+
+traffic:
+  profile: uniform               # uniform | bursty
+  offered_packets_per_node_per_round: 1
+  tx_capacity_per_round: 12      # hop attempts per sensor per round (own + relayed)
+  link_retries: 0                # v1: one attempt per hop
+  burst_probability: 0.10        # bursty only: chance a sensor bursts in a round
+  burst_multiplier: 3            # bursty only: packets multiplied during a burst
+
+routing:
+  rl_candidate_limit: 5          # K ranked candidate slots = Q-Learning actions
+  density_reference: 10          # density = min(alive_degree / 10, 1)
+  heuristic:                     # energy-aware edge cost coefficients
+    base: 1.0
+    energy_cost: 1.0             # * (E_tx + E_rx) / E_ref, E_ref = packet_bits * E_elec
+    link_unreliability: 1.2      # * (1 - p_success)
+    depletion: 1.5               # * (1 - receiver energy fraction)
+    utilization: 0.5             # * receiver utilization
+    sparsity: 0.2                # * (1 - receiver density)
+  candidate:                     # RL ranking score magnitudes (signs fixed in code)
+    energy: 0.30                 # +
+    link_quality: 0.25           # +
+    progress: 0.35               # + clip(progress / range, -1, 1)
+    utilization: 0.20            # -
+    density: 0.05                # +
+    tx_cost: 0.10                # - E_tx / E_ref
+
+q_learning:
+  alpha: 0.15
+  gamma: 0.95
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  train_episodes: 40
+  train_max_rounds: 400
+  training_seed_start: 1000      # training seeds 1000..1039; disjoint from evaluation
+  agent_seed: 7
+  state_bins:                    # [low/medium, medium/high] boundaries
+    energy: [0.33, 0.66]
+    sink_distance: [0.15, 0.35]  # distance / field diagonal
+    load: [0.34, 0.67]
+    degree: [0.4, 0.8]
+    link_quality: [0.75, 0.88]
+    neighbor_energy: [0.33, 0.66]
+  reward:                        # magnitudes (signs fixed in code)
+    hop_penalty: 0.05
+    energy_cost: 0.15
+    utilization: 0.30
+    depletion: 0.40
+    progress: 0.50
+    delivered_bonus: 10.0
+    failure_penalty: 10.0
+    exhaustion_penalty: 2.0
+
+clustering:                      # leach and cluster_adaptive (no data aggregation)
+  rotation_rounds: 20            # re-elect cluster heads every 20 rounds
+  leach_ch_fraction: 0.10        # LEACH: desired fraction p of heads per epoch
+  gateway_penalty: 0.5           # backbone: extra cost for relaying through a non-head
+  min_head_energy_fraction: 0.10 # adaptive: never elect a sensor below 10% battery
+  adaptive_energy: 0.50          # adaptive head score weights
+  adaptive_coverage: 0.20
+  adaptive_sink_proximity: 0.20
+  adaptive_load: 0.10
+
+dqn:                             # deep Q-network (shares q_learning seeds, gamma, reward)
+  hidden_units: [64, 64]
+  learning_rate: 1.0e-3
+  batch_size: 64
+  replay_capacity: 20000
+  warmup_transitions: 1000
+  train_every: 4                 # one gradient step every 4 transitions
+  target_sync_steps: 500         # copy online -> target network every 500 steps
+  huber_delta: 1.0
+  seed: 11
+
+evaluation:
+  seeds: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009]
+  algorithms: [shortest_path, energy_aware, leach, cluster_adaptive, q_learning, dqn]
+
+output:
+  trace_sample_every: 20         # keep packets whose id is a multiple of this
+  energy_snapshot_every: 10      # node energy snapshot period (rounds)

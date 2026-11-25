@@ -1,0 +1,41 @@
+# Named experiment scenarios for `python -m wsn.cli compare --scenario <name>`.
+# Each variant overlays `overrides` on the --config file. Seeds default to evaluation.seeds.
+scenarios:
+  smoke:
+    description: "Smoke check: 1 seed, 25 nodes, 100 rounds. Correctness/demo only."
+    seeds: [2000]
+    variants:
+      - name: n25
+        overrides:
+          scenario: {node_count: 25, max_rounds: 100, communication_range_m: 35.0}
+
+  standard:
+    description: "Standard: 50 nodes, 10 held-out evaluation seeds, up to 2000 rounds."
+    variants:
+      - name: n50
+        overrides: {}
+
+  scalability:
+    description: "Scalability: 25 / 50 / 100 nodes on paired seeds, otherwise identical settings."
+    variants:
+      - name: n25
+        overrides:
+          scenario: {node_count: 25, communication_range_m: 35.0}
+      - name: n50
+        overrides: {}
+      - name: n100
+        overrides:
+          scenario: {node_count: 100}
+
+  stress:
+    description: "Stress: bursty traffic, degraded links, and a sink on the field edge."
+    variants:
+      - name: bursty
+        overrides:
+          traffic: {profile: bursty}
+      - name: degraded_links
+        overrides:
+          radio: {base_link_quality_intercept: 0.85, base_link_quality_distance_coefficient: 0.30}
+      - name: edge_sink
+        overrides:
+          scenario: {sink_x_m: 50.0, sink_y_m: 0.0, communication_range_m: 35.0}

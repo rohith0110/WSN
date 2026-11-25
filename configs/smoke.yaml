@@ -1,0 +1,21 @@
+# Fast deterministic configuration for tests and demos. Low initial energy so node deaths,
+# link failures and delivery all occur within a few seconds of runtime.
+scenario:
+  node_count: 25
+  communication_range_m: 35.0
+  initial_energy_j: 0.03
+  max_rounds: 100
+  seed: 2000
+
+q_learning:
+  train_episodes: 6
+  train_max_rounds: 80
+  training_seed_start: 1000
+
+evaluation:
+  seeds: [2000]
+  algorithms: [shortest_path, energy_aware, leach, cluster_adaptive, q_learning, dqn]
+
+output:
+  trace_sample_every: 5
+  energy_snapshot_every: 5

@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+build/
+dist/
+
+# Generated outputs (reproduce with the CLI)
+results/
+models/
+
+# Agent / tooling local state
+.claude/
+.agents/
+.agent/
+.codex/
+.remember/
+.playwright-mcp/
+
+# Local credentials
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
